@@ -1,0 +1,94 @@
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+    margin: 0;
+    padding: 20px;
+}
+
+h1, h2 {
+    color: #ff4d4d;
+    text-shadow: 2px 2px 4px rgba(255, 0, 0, 0.5);
+}
+
+#auctionList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.auction-card {
+    background-color: #2a2a2a;
+    border: 2px solid #800000;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.auction-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(255, 0, 0, 0.4);
+}
+
+button {
+    background-color: #cc0000;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #ff0000;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: #2a2a2a;
+    border: 2px solid #800000;
+    animation: fadeIn 0.5s ease-out;
+}
+
+th, td {
+    border: 1px solid #800000;
+    padding: 12px;
+    text-align: left;
+}
+
+th {
+    background-color: #4a0000;
+    color: #ff9999;
+}
+
+tr:nth-child(even) {
+    background-color: #333333;
+}
+
+.back-button {
+    margin-top: 20px;
+    background-color: #4a0000;
+}
+
+.back-button:hover {
+    background-color: #800000;
+}
+
+.highlight {
+    animation: highlightChange 1s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes highlightChange {
+    0% { color: #ff4d4d; }
+    100% { color: #e0e0e0; }
+}

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Auction Item - Sinister Auctions</title>
+    <link rel="stylesheet" href="submit-styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Submit Auction Item</h1>
+        </header>
+        <main>
+            <form id="submitForm">
+                <input type="text" id="itemName" placeholder="Item Name" required>
+                <textarea id="itemDescription" placeholder="Item Description" required></textarea>
+                <input type="number" id="startingBid" placeholder="Starting Bid" required>
+                <div id="dropZone" class="drop-zone">
+                    <span class="drop-zone__prompt">Drop image here or click to upload</span>
+                    <input type="file" id="imageUpload" class="drop-zone__input" accept="image/*">
+                </div>
+                <button type="submit">Submit Item</button>
+            </form>
+        </main>
+        <a href="index.html" class="nav-link">Return to Auctions</a>
+    </div>
+    <script src="submit.js"></script>
+</body>
+</html>

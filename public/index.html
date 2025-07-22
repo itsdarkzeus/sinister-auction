@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auction App</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Auction App</h1>
+        </header>
+        <div class="search-container">
+            <div class="search-wrapper">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchInput" placeholder="Search auctions...">
+                <button id="filterButton"><i class="fas fa-sliders-h"></i></button>
+            </div>
+        </div>
+        <div id="filterMenu" class="filter-menu">
+            <h3>Filter by Category</h3>
+            <select id="filterSelect">
+                <option value="all">All Categories</option>
+                <option value="electronics">Electronics</option>
+                <option value="fashion">Fashion</option>
+                <option value="home">Home &amp; Garden</option>
+                <option value="other">Other</option>
+            </select>
+            <button id="applyFilter">Apply Filter</button>
+        </div>
+        <main>
+            <div class="auction-list" id="auctionList">
+                <!-- Auction items will be dynamically added here -->
+            </div>
+        </main>
+        <a href="submit.html" class="nav-link">Submit New Item</a>
+    </div>
+    <div id="itemModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+    <div id="customPopup" class="custom-popup">
+        <div class="popup-content">
+          <h2 id="popupTitle"></h2>
+          <p id="popupMessage"></p>
+          <button id="popupClose">Close</button>
+        </div>
+    </div>
+    <div id="bidInputPopup" class="custom-popup">
+        <div class="popup-content">
+          <h2>Place Your Bid</h2>
+          <input type="text" id="bidderNameInput" placeholder="Your Name" required>
+          <input type="number" id="bidInput" placeholder="Enter your bid amount" min="0" step="0.01">
+          <div class="popup-buttons">
+            <button id="submitBid">Submit Bid</button>
+            <button id="cancelBid">Cancel</button>
+          </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
