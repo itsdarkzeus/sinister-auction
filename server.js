@@ -1,209 +1,152 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const path = require('path');
+const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
+// Middleware
 app.use(cors());
-app.use(bodyParser.json({ limit: '30mb' })); // Increase the limit to handle larger Base64 strings
-app.use(express.static('public'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// In-memory array to store auctions
-let auctions = [
-  { 
-    id: 1,
-    title: "Vintage Rolex Watch", 
-    description: "A rare 1956 Rolex Submariner in excellent condition. This timepiece features a black dial, luminous hour markers, and a rotating bezel. It comes with its original box and papers, making it a true collector's item.", 
-    currentBid: 15000,
-    image: "https://cdn.glitch.global/05568431-9cb3-4705-b7c2-a953f7c82317/rolex.jpg?v=1726446219206"
-  },
-  { 
-    id: 2,
-    title: "Original Banksy Artwork", 
-    description: "An authenticated Banksy piece from his early street art days. This piece, titled 'Girl with Balloon', showcases Banksy's iconic stencil technique and powerful imagery. It comes with a certificate of authenticity.", 
-    currentBid: 50000,
-    image: "https://cdn.glitch.global/05568431-9cb3-4705-b7c2-a953f7c82317/art.jpg?v=1726470464647"
-  },
-  { 
-    id: 3,
-    title: "First Edition Harry Potter Book", 
-    description: "First edition, first printing of Harry Potter and the Philosopher's Stone, signed by J.K. Rowling. This rare book is in excellent condition and is a must-have for any serious Harry Potter collector.", 
-    currentBid: 75000,
-    image: "https://cdn.glitch.global/05568431-9cb3-4705-b7c2-a953f7c82317/harrypotter.jpg?v=1726470497554"
-  },
-  { 
-    id: 4,
-    title: "1965 Fender Stratocaster", 
-    description: "A classic 1965 Fender Stratocaster in sunburst finish. This guitar is in excellent playing condition and has been professionally set up. It features the original pickups and hardware, producing that iconic Strat tone.", 
-    currentBid: 25000,
-    image: "https://cdn.glitch.global/05568431-9cb3-4705-b7c2-a953f7c82317/guiter.jpg?v=1726470505450"
-  },
-  { 
-    id: 5,
-    title: "Rare Blue Diamond", 
-    description: "A 5-carat blue diamond, certified by GIA. This extremely rare and valuable diamond has a vivid blue color and excellent clarity. It comes with its GIA certificate and a custom-made presentation box.", 
-    currentBid: 1000000,
-    image: "https://cdn.glitch.global/05568431-9cb3-4705-b7c2-a953f7c82317/rarediamond.jpg?v=1726470509512"
-  },
-  { 
-    id: 6,
-    title: "Bat Car", 
-    description: "I am batman.", 
-    currentBid: 10000000,
-    image: "https://cdn.glitch.global/05568431-9cb3-4705-b7c2-a953f7c82317/batcar.jpg?v=1726471192775"
-  }
-];
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Add a bids array to each auction item
-auctions = auctions.map(auction => ({
-  ...auction,
-  bids: []
-}));
-
-// Simple in-memory session storage
+// Session management (in-memory for now)
 const sessions = {};
 
-// Admin credentials
-const adminCredentials = {
-  username: 'admin',
-  password: 'sinister123'
-};
+// Database setup
+const db = new sqlite3.Database(':memory:');
 
-// Login route
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  
-  if (!username || !password) {
-    return res.status(400).json({ error: "Username and password are required." });
-  }
-
-  if (username !== adminCredentials.username) {
-    return res.status(401).json({ error: "Invalid username." });
-  }
-
-  if (password !== adminCredentials.password) {
-    return res.status(401).json({ error: "Incorrect password." });
-  }
-
-  const sessionId = Math.random().toString(36).substring(2);
-  sessions[sessionId] = { username: adminCredentials.username };
-  res.json({ sessionId });
-});
-
-// Middleware to check if user is logged in
-const requireLogin = (req, res, next) => {
-  const sessionId = req.get('Authorization');
-  if (sessions[sessionId]) {
-    next();
-  } else {
-    res.status(401).json({ error: "Unauthorized" });
-  }
-};
-
- // public routes
-
-// GET all auctions
-app.get('/auctions', (req, res) => {
-  res.json(auctions);
-});
-
-// POST a new auction (public)
-app.post('/auctions', (req, res) => {
-  const { title, description, currentBid, image } = req.body;
-  const newAuction = {
-    id: auctions.length + 1,
-    title,
-    description,
-    currentBid: parseFloat(currentBid), 
-    image
-  };
-  auctions.push(newAuction);
-  res.status(201).json(newAuction);
-});
-
-// GET a specific auction with all its bids
-app.get('/auctions/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const auction = auctions.find(a => a.id === id);
-  if (auction) {
-    res.json(auction);
-  } else {
-    res.status(404).json({ error: "Auction not found" });
-  }
-});
-
-// PUT (update) an auction (public)
-app.put('/auctions/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const { currentBid, bidderName } = req.body;
-  const auction = auctions.find(a => a.id === id);
-  
-  if (auction) {
-    const newBid = parseFloat(currentBid);
+// Initialize database
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS auctions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      starting_price REAL,
+      current_bid REAL,
+      end_time DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
     
-    // Check if the new bid is higher than the current bid
-    if (newBid > auction.currentBid) {
-      auction.currentBid = newBid;
-      auction.highestBidder = bidderName;
-      auction.bids.push({ bidder: bidderName, amount: newBid, time: new Date() });
-      res.json(auction);
-    } else {
-      res.status(400).json({ error: "New bid must be higher than the current bid" });
-    }
+  db.run(`CREATE TABLE IF NOT EXISTS bids (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      auction_id INTEGER,
+      amount REAL,
+      bidder_name TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(auction_id) REFERENCES auctions(id)
+  )`);
+    
+  // Insert sample data
+  db.run(`INSERT INTO auctions (title, description, starting_price, current_bid, end_time) 
+          VALUES ('Vintage Guitar', 'Beautiful 1960s electric guitar', 500, 500, datetime('now', '+7 days'))`);
+  db.run(`INSERT INTO auctions (title, description, starting_price, current_bid, end_time) 
+          VALUES ('Antique Watch', 'Gold pocket watch from 1920s', 300, 300, datetime('now', '+5 days'))`);
+});
+
+// Routes
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// API Routes
+app.get('/api/auctions', (req, res) => {
+  db.all("SELECT * FROM auctions ORDER BY created_at DESC", (err, rows) => {
+      if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+      }
+      res.json(rows);
+  });
+});
+
+app.post('/api/auctions', (req, res) => {
+  const { title, description, starting_price, end_time } = req.body;
+  db.run(`INSERT INTO auctions (title, description, starting_price, current_bid, end_time) 
+          VALUES (?, ?, ?, ?, ?)`, 
+          [title, description, starting_price, starting_price, end_time], 
+          function(err) {
+              if (err) {
+                  res.status(500).json({ error: err.message });
+                  return;
+              }
+              res.json({ id: this.lastID, message: 'Auction created successfully' });
+          });
+});
+
+app.post('/api/bids', (req, res) => {
+  const { auction_id, amount, bidder_name } = req.body;
+    
+  // Check if bid is higher than current bid
+  db.get("SELECT current_bid FROM auctions WHERE id = ?", [auction_id], (err, row) => {
+      if (err || !row) {
+          res.status(500).json({ error: 'Auction not found' });
+          return;
+      }
+        
+      if (amount <= row.current_bid) {
+          res.status(400).json({ error: 'Bid must be higher than current bid' });
+          return;
+      }
+        
+      // Place bid
+      db.run(`INSERT INTO bids (auction_id, amount, bidder_name) VALUES (?, ?, ?)`,
+              [auction_id, amount, bidder_name], function(err) {
+                  if (err) {
+                      res.status(500).json({ error: err.message });
+                      return;
+                  }
+                    
+                  // Update auction current bid
+                  db.run(`UPDATE auctions SET current_bid = ? WHERE id = ?`,
+                          [amount, auction_id], (err) => {
+                              if (err) {
+                                  res.status(500).json({ error: err.message });
+                                  return;
+                              }
+                              res.json({ message: 'Bid placed successfully' });
+                          });
+              });
+  });
+});
+
+// Login routes
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+    
+  // Simple admin check (replace with proper authentication)
+  if (username === 'admin' && password === 'admin123') {
+      const sessionId = Math.random().toString(36).substring(7);
+      sessions[sessionId] = { username, isAdmin: true };
+      res.json({ success: true, sessionId, message: 'Login successful' });
   } else {
-    res.status(404).json({ error: "Auction not found" });
+      res.status(401).json({ error: 'Invalid credentials' });
   }
 });
 
-// Admin routes (protected)
-
-// Serve admin.html only if logged in
-app.get('/admin.html', requireLogin, (req, res) => {
-  res.sendFile(__dirname + '/public/admin.html');
-});
-
-// GET all auctions with bids (admin only)
-app.get('/admin/auctions', requireLogin, (req, res) => {
-  res.json(auctions);
-});
-
-// POST a new auction (admin only)
-app.post('/admin/auctions', requireLogin, (req, res) => {
-  const { title, description, currentBid, image } = req.body;
-  const newAuction = {
-    id: auctions.length + 1,
-    title,
-    description,
-    currentBid: parseFloat(currentBid),
-    image,
-    bids: []
-  };
-  auctions.push(newAuction);
-  res.status(201).json(newAuction);
-});
-
-app.post('/logout', (req, res) => {
-  const sessionId = req.get('Authorization');
+app.post('/api/logout', (req, res) => {
+  const { sessionId } = req.body;
   delete sessions[sessionId];
-  res.json({ success: true });
+  res.json({ message: 'Logged out successfully' });
 });
 
-
-// GET a specific auction with all its bids (admin only)
-app.get('/admin/auctions/:id', requireLogin, (req, res) => {
-  const id = parseInt(req.params.id);
-  const auction = auctions.find(a => a.id === id);
-  if (auction) {
-    res.json(auction);
-  } else {
-    res.status(404).json({ error: "Auction not found" });
-  }
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
-// Serve static files
-app.use(express.static('public'));
 
-// Start the server
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(`🚀 Auction app running on port ${PORT}`);
+  console.log(`📱 Frontend: http://localhost:${PORT}`);
+  console.log(`🔧 Admin: http://localhost:${PORT}/admin`);
+  console.log(`🌐 API: http://localhost:${PORT}/api/auctions`);
 });
